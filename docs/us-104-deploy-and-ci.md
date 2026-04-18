@@ -1,7 +1,7 @@
 # US-104 Deploy And CI
 
 Date: 2026-04-18
-Status: Almost complete
+Status: Complete with one platform limitation
 
 ## Goal
 
@@ -37,13 +37,14 @@ Finish the first preview deployment pipeline for `generator-publisher` and make 
 - Stable alias: `https://generator-publisher.vercel.app`
 - Production env vars were added to the Vercel project.
 - Production redeploy succeeded after temporarily removing local `.env.local` from the deploy step.
+- Supabase Auth URL configuration was updated for localhost and Vercel domains.
+- GitHub repository created: `https://github.com/dimaantipenko/generator-publisher`
+- `main` was pushed to the new origin.
+- GitHub Actions workflow `CI` ran successfully on `main`.
 - Local `lint`, `typecheck`, and `build` are green.
 
 ## External Steps Still Required
 
-- Create or connect the GitHub repository.
-- Push the current branch history to GitHub so GitHub Actions can run on pull requests.
-- Add the stable Vercel domain to Supabase Auth redirect settings.
 - Optionally add preview env vars after Git integration is connected, if branch previews are required.
 
 ## Important Notes
@@ -51,6 +52,8 @@ Finish the first preview deployment pipeline for `generator-publisher` and make 
 - The first deployment succeeded because `Vercel` detected the local `.env.local` file during CLI deploy.
 - A second deployment was completed after removing `.env.local` from the deploy command, which confirms the production deployment now works from Vercel project env vars.
 - Vercel preview env vars still require Git branch context and should be added after GitHub integration is connected.
+- Branch protection could not be enabled on the private repository because GitHub returned: `Upgrade to GitHub Pro or make this repository public to enable this feature.`
+- Operationally, the team can still use the rule `PR only + green CI before merge`, but GitHub cannot enforce it on the current private-repo plan.
 
 ## Manual Validation After US-104
 
