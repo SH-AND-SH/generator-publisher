@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function createWorkspace(payload: { name: string; timezone: string }) {
   const supabase = await createClient()
@@ -16,17 +16,16 @@ export async function createWorkspace(payload: { name: string; timezone: string 
     return { error: 'Workspace name is required' }
   }
 
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('workspaces')
     .insert({ name: name.trim(), owner_user_id: user.id, timezone: timezone || 'UTC' })
-    .select('id')
-    .single()
 
   if (error) {
-    console.error('[createWorkspace] insert error:', error.code, error.message, error.details, error.hint)
+    console.error('[createWorkspace] insert error:', error.code, error.message)
     return { error: error.message }
   }
 
   revalidatePath('/', 'layout')
-  redirect(`/dashboard`)
+  redirect('/dashboard')
 }

@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function createProject(payload: {
   workspaceId: string
@@ -21,7 +21,8 @@ export async function createProject(payload: {
     return { error: 'All fields are required' }
   }
 
-  const { data, error } = await supabase
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('projects')
     .insert({
       workspace_id: workspaceId,
@@ -33,7 +34,7 @@ export async function createProject(payload: {
     .single()
 
   if (error) {
-    console.error('[createProject] insert error:', error)
+    console.error('[createProject] insert error:', error.code, error.message)
     return { error: error.message }
   }
 
