@@ -105,6 +105,21 @@ Supabase SSR client не передаёт JWT в database queries из server ac
 ### Approve-before-image workflow
 В `content_items` два поля: `approved_text_at` и `approved_prompt_at`. Запись в `image_assets` только после заполнения обоих. Кнопка генерации картинки заблокирована UI до этого момента.
 
+### Buffer — основной механизм публикации
+- Buffer верифицирован во всех соцсетях как официальный партнёр — отдельная верификация не нужна
+- Юзер подключает аккаунты один раз в настройках проекта
+- Credentials хранятся в таблице `integrations` (уже есть в схеме)
+- Каждый Buffer profile_id маппится на платформу в `integrations.credentials` (JSON)
+- `publish_jobs` получит поля `buffer_post_id` и `buffer_status` (миграция в Sprint 3)
+- Buffer возвращает базовую аналитику: охват, показы, лайки, комментарии, сохранения, репосты, клики
+- **Telegram** — исключение: Buffer не поддерживает, используем Telegram Bot API отдельно
+
+### Meta Graph API — глубокая аналитика (Sprint 4)
+- Одна верификация покрывает Instagram + Facebook
+- Даёт: демография аудитории, данные Stories и Reels, новые подписчики с поста
+- LinkedIn — оценить по необходимости
+- Twitter/X — $100/мес, откладывается до подтверждения спроса
+
 ### SSI — двухуровневые scheduling signals
 - `shared_system_analytics` — анонимизированные кросс-воркспейсовые паттерны (читают все)
 - `workspace_scheduling_signals` — воркспейс-уровневые, строятся на SSI + локальной аналитике
@@ -205,18 +220,36 @@ src/
 **Фаза 6 — ContentPlanner:**
 - ❌ calendar_entries + publish_jobs + scheduling
 
-### Sprint 3 — Publishing + Calendar ❌ НЕ НАЧАТ
-- ❌ US-301 — Workspace Calendar (полноценный)
-- ❌ US-302 — ProjectKanban (канбан-доска: неделя / месяц)
-- ❌ US-303 — Telegram Integration (реальная публикация)
-- ❌ US-304 — Buffer Integration (реальная публикация)
-- ❌ US-305 — Publish Jobs Worker (cron / webhook)
+### Sprint 3 — Publishing via Buffer + Basic Analytics ❌ НЕ НАЧАТ
 
-### Sprint 4 — Analytics + Learning Loop (7–13 мая) ❌ НЕ НАЧАТ
-- ❌ US-401 — Metrics Sync
-- ❌ US-402 — Project Analytics Dashboard
-- ❌ US-403 — Learning Loop
-- ❌ US-404 — Workspace Dashboard (финальная версия)
+**Архитектура публикации:**
+- Buffer — основной механизм постинга (Instagram, Facebook, LinkedIn, Twitter/X, TikTok)
+- Telegram Bot API — отдельный флоу (Buffer не поддерживает Telegram)
+- Sprint 2 создаёт `publish_jobs` со статусом `pending`, Sprint 3 их обрабатывает
+
+**DB миграция (перед стартом Sprint 3):**
+- Добавить в `publish_jobs`: `buffer_post_id TEXT`, `buffer_status TEXT`
+- Добавить в `publish_jobs`: `telegram_message_id TEXT`
+
+**Задачи:**
+- ❌ US-301 — Settings: подключение Buffer (OAuth, сохранение credentials в `integrations`)
+- ❌ US-302 — Buffer Posting: обработка `publish_jobs` → отправка в Buffer API → сохранение `buffer_post_id`
+- ❌ US-303 — Telegram Posting: отдельный флоу через Telegram Bot API
+- ❌ US-304 — Published Content Page (`/project/[id]/publications`): список постов + Buffer-аналитика по каждому (охват, показы, лайки, комментарии, сохранения, репосты, клики)
+- ❌ US-305 — Project Analytics Summary: сводка на уровне проекта (какие платформы и типы постов дают лучший результат)
+- ❌ US-306 — Workspace Calendar (полноценный)
+- ❌ US-307 — ProjectKanban (канбан-доска: неделя / месяц)
+
+### Sprint 4 — Learning Loop + Deep Analytics ❌ НЕ НАЧАТ
+
+**Задачи:**
+- ❌ US-401 — AI Learning Loop (на основе Buffer-аналитики из Sprint 3)
+- ❌ US-402 — Meta Graph API: Instagram + Facebook (одна верификация, демография, Stories/Reels, новые подписчики с поста)
+- ❌ US-403 — Workspace Analytics Dashboard (финальная версия)
+- ❌ US-404 — LinkedIn Analytics (оценить по готовности)
+
+**Отложено:**
+- Twitter/X Analytics API — платный ($100/мес), откладывается до подтверждения спроса
 
 ### Sprint 5 — Trend Scout + Idea Bank (14–20 мая) ❌ НЕ НАЧАТ
 - ❌ US-501 — Trend Scout
@@ -259,6 +292,10 @@ src/
 | Дизайн | Figma Make: https://www.figma.com/make/9TQZnNqWkB9k09PByxMgKQ — проверен 2026-05-13, актуален |
 | Billing | Заглушка. Stripe-ready поля в схеме уже есть. Видимый billing — не в V1 |
 | Mobile | Desktop-first. На мобильном работает просмотр, полноценное создание — только desktop |
+| Buffer API key | Нужно получить перед Sprint 3. Добавить в `.env.local` и Vercel: `BUFFER_API_TOKEN` |
+| Telegram Bot | Создать бота через BotFather перед Sprint 3. Токен: `TELEGRAM_BOT_TOKEN` в env |
+| Meta Graph API | Нужна верификация приложения в Meta Developer Portal перед Sprint 4. Покрывает Instagram + Facebook |
+| Twitter/X Analytics | Отложено — платный API ($100/мес). Оценить после подтверждения спроса |
 
 ---
 

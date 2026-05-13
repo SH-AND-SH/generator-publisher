@@ -1,8 +1,24 @@
-export default function ContentNewPage() {
-  return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold text-muted-foreground">Создать контент</h1>
-      <p className="text-sm text-muted-foreground mt-2">Content Task Builder — будет доступен в следующем спринте.</p>
-    </div>
-  )
+import { notFound, redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { ContentTaskBuilder } from './content-task-builder'
+
+export default async function ContentNewPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, name')
+    .eq('id', id)
+    .single()
+
+  if (!project) notFound()
+
+  return <ContentTaskBuilder projectId={id} projectName={project.name} />
 }
