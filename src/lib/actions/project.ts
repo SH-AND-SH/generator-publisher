@@ -3,13 +3,14 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
+import { OPENAI_TEXT_MODEL } from '@/lib/constants'
 import type { Database } from '@/types/database'
 
 type PlatformEnum = Database['public']['Enums']['platform']
 
-function getAnthropic() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 }
 
 export async function analyzeVisualDNA(
@@ -22,29 +23,19 @@ export async function analyzeVisualDNA(
   const files = formData.getAll('files') as File[]
   if (files.length === 0) return { error: 'Нет файлов для анализа' }
 
-  const imageContents: Anthropic.ImageBlockParam[] = []
+  const imageMessages: OpenAI.Chat.ChatCompletionContentPart[] = []
   for (const file of files) {
     const buffer = await file.arrayBuffer()
     const base64 = Buffer.from(buffer).toString('base64')
-    const mediaType = (file.type || 'image/jpeg') as 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
-    imageContents.push({
-      type: 'image',
-      source: { type: 'base64', media_type: mediaType, data: base64 },
+    const mediaType = file.type || 'image/jpeg'
+    imageMessages.push({
+      type: 'image_url',
+      image_url: { url: `data:${mediaType};base64,${base64}` },
     })
   }
-
-  try {
-    const anthropic = getAnthropic()
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: [
-          ...imageContents,
-          {
-            type: 'text',
-            text: `Ты дизайн-аналитик. Изучи эти скриншоты приложения и опиши визуальный стиль бренда.
+  imageMessages.push({
+    type: 'text',
+    text: `Ты дизайн-аналитик. Изучи эти скриншоты приложения и опиши визуальный стиль бренда.
 
 Напиши 2–3 абзаца связного текста без заголовков и списков. Охвати:
 цветовую палитру и акценты, типографику и стиль текста, стиль иконок и иллюстраций,
@@ -52,16 +43,21 @@ export async function analyzeVisualDNA(
 
 Этот текст будет использоваться AI-агентом как визуальный ориентир при создании контента.
 Пиши конкретно — не "современный дизайн", а что именно это означает визуально.`,
-          },
-        ],
-      }],
+  })
+
+  try {
+    const openai = getOpenAI()
+    const response = await openai.chat.completions.create({
+      model: OPENAI_TEXT_MODEL,
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: imageMessages }],
     })
-    const content = message.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
-    return { result: content.text }
+    const text = response.choices[0]?.message?.content
+    if (!text) return { error: 'Неожиданный ответ от AI' }
+    return { result: text }
   } catch (e) {
     console.error('[analyzeVisualDNA]', e)
-    return { error: 'Ошибка AI-анализа. Проверьте ANTHROPIC_API_KEY.' }
+    return { error: 'Ошибка AI-анализа. Проверьте OPENAI_API_KEY.' }
   }
 }
 
@@ -99,18 +95,18 @@ export async function generateBrandVoice(context: {
 УТП: ${context.uniqueValue}`
 
   try {
-    const anthropic = getAnthropic()
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+    const openai = getOpenAI()
+    const response = await openai.chat.completions.create({
+      model: OPENAI_TEXT_MODEL,
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     })
-    const content = message.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
-    return { result: content.text }
+    const text = response.choices[0]?.message?.content
+    if (!text) return { error: 'Неожиданный ответ от AI' }
+    return { result: text }
   } catch (e) {
     console.error('[generateBrandVoice]', e)
-    return { error: 'Ошибка AI-генерации. Проверьте ANTHROPIC_API_KEY.' }
+    return { error: 'Ошибка AI-генерации. Проверьте OPENAI_API_KEY.' }
   }
 }
 

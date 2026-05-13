@@ -3,8 +3,8 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
+import { OPENAI_TEXT_MODEL } from '@/lib/constants'
 import type { Database } from '@/types/database'
 
 type PlatformEnum = Database['public']['Enums']['platform']
@@ -31,12 +31,18 @@ interface ProjectCtx {
   visualGuidelines: string
 }
 
-function getAnthropic() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-}
-
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
+
+async function callOpenAI(prompt: string, maxTokens = 2048): Promise<string | null> {
+  const openai = getOpenAI()
+  const response = await openai.chat.completions.create({
+    model: OPENAI_TEXT_MODEL,
+    max_tokens: maxTokens,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  return response.choices[0]?.message?.content ?? null
 }
 
 async function loadProjectCtx(
@@ -282,7 +288,6 @@ function buildPlatformPrompt(platform: string, ctx: ProjectCtx, userRequest?: st
     .replace('[BRAND VOICE]', ctx.toneOfVoice || '')
     .replace('[ЗАПРОС ЮЗЕРА]', userRequest || '')
 
-  // remove empty-variable blocks
   result = result.replace(/^[A-ZА-Я\/ ]+:\n\s*\n/gm, '')
   return result.replace(/\n{3,}/g, '\n\n').trim()
 }
@@ -315,15 +320,9 @@ export async function generateContentIdeas(payload: {
 Только JSON, без markdown-обёртки, без пояснений.`
 
   try {
-    const anthropic = getAnthropic()
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-    })
-    const content = msg.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
-    const ideas: ContentIdea[] = JSON.parse(content.text)
+    const text = await callOpenAI(prompt, 1024)
+    if (!text) return { error: 'Неожиданный ответ от AI' }
+    const ideas: ContentIdea[] = JSON.parse(text)
     return { ideas }
   } catch (e) {
     console.error('[generateContentIdeas]', e)
@@ -351,21 +350,14 @@ export async function generateDraftContent(payload: {
 
   let generatedText: string
   try {
-    const anthropic = getAnthropic()
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: promptText }],
-    })
-    const content = msg.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
-    generatedText = content.text
+    const text = await callOpenAI(promptText)
+    if (!text) return { error: 'Неожиданный ответ от AI' }
+    generatedText = text
   } catch (e) {
-    console.error('[generateDraftContent] claude error', e)
+    console.error('[generateDraftContent] openai error', e)
     return { error: 'Ошибка генерации контента' }
   }
 
-  // Create resource_bundle
   const { data: bundle, error: bundleErr } = await admin
     .from('resource_bundles')
     .insert({ project_id: payload.projectId, created_by: user.id })
@@ -373,7 +365,6 @@ export async function generateDraftContent(payload: {
     .single()
   if (bundleErr || !bundle) return { error: 'Ошибка создания bundle: ' + bundleErr?.message }
 
-  // Create draft_set
   const { data: draftSet, error: setErr } = await admin
     .from('draft_sets')
     .insert({
@@ -386,7 +377,6 @@ export async function generateDraftContent(payload: {
     .single()
   if (setErr || !draftSet) return { error: 'Ошибка создания draft_set: ' + setErr?.message }
 
-  // Create draft_variant
   const { data: variant, error: varErr } = await admin
     .from('draft_variants')
     .insert({
@@ -444,21 +434,15 @@ export async function regenerateDraftText(payload: {
   const promptText = buildPlatformPrompt(platform, ctx, variant.post_idea)
 
   try {
-    const anthropic = getAnthropic()
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: promptText }],
-    })
-    const content = msg.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
+    const text = await callOpenAI(promptText)
+    if (!text) return { error: 'Неожиданный ответ от AI' }
 
     await admin
       .from('draft_variants')
-      .update({ text_body: content.text })
+      .update({ text_body: text })
       .eq('id', payload.draftVariantId)
 
-    return { text: content.text }
+    return { text }
   } catch (e) {
     console.error('[regenerateDraftText]', e)
     return { error: 'Ошибка перегенерации' }
@@ -483,21 +467,15 @@ ${payload.currentText}
 Инструкция: ${payload.instruction}`
 
   try {
-    const anthropic = getAnthropic()
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: prompt }],
-    })
-    const content = msg.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
+    const text = await callOpenAI(prompt)
+    if (!text) return { error: 'Неожиданный ответ от AI' }
 
     await createAdminClient()
       .from('draft_variants')
-      .update({ text_body: content.text })
+      .update({ text_body: text })
       .eq('id', payload.draftVariantId)
 
-    return { text: content.text }
+    return { text }
   } catch (e) {
     console.error('[editDraftWithInstruction]', e)
     return { error: 'Ошибка редактирования' }
@@ -528,15 +506,9 @@ ${payload.draftText}
 Только JSON, без markdown-обёртки.`
 
   try {
-    const anthropic = getAnthropic()
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-    })
-    const content = msg.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
-    const ideas: VisualIdea[] = JSON.parse(content.text)
+    const text = await callOpenAI(prompt, 1024)
+    if (!text) return { error: 'Неожиданный ответ от AI' }
+    const ideas: VisualIdea[] = JSON.parse(text)
     return { ideas }
   } catch (e) {
     console.error('[generateVisualIdeas]', e)
@@ -639,7 +611,6 @@ export async function generateImage(payload: {
     const imageUrl = items[0]?.url
     if (!imageUrl) return { error: 'DALL-E не вернул изображение' }
 
-    // Download and upload to Supabase Storage
     const imgResponse = await fetch(imageUrl)
     const imgBuffer = await imgResponse.arrayBuffer()
     const storagePath = `${payload.projectId}/${payload.draftVariantId}/${Date.now()}.png`
@@ -653,7 +624,6 @@ export async function generateImage(payload: {
       .from('image-assets')
       .getPublicUrl(storagePath)
 
-    // Store URL in preview_hints for use before approve
     await admin
       .from('draft_variants')
       .update({
@@ -690,18 +660,11 @@ export async function regenerateImageWithInstruction(payload: {
 Инструкция: ${payload.instruction}`
 
   try {
-    const anthropic = getAnthropic()
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 512,
-      messages: [{ role: 'user', content: modifyPrompt }],
-    })
-    const content = msg.content[0]
-    if (content.type !== 'text') return { error: 'Неожиданный ответ от AI' }
-    // Update the stored prompt so generateImage picks up the new version
+    const newPromptText = await callOpenAI(modifyPrompt, 512)
+    if (!newPromptText) return { error: 'Неожиданный ответ от AI' }
     await createAdminClient()
       .from('draft_variants')
-      .update({ image_prompt: content.text })
+      .update({ image_prompt: newPromptText })
       .eq('id', payload.draftVariantId)
   } catch {
     return { error: 'Ошибка модификации промпта' }
@@ -730,7 +693,6 @@ export async function approveContent(payload: {
 
   const hints = variant.preview_hints as { storagePath?: string } | null
 
-  // Update draft status
   await admin
     .from('draft_variants')
     .update({ status: 'selected', selected_at: new Date().toISOString(), text_body: payload.finalText })
@@ -738,7 +700,6 @@ export async function approveContent(payload: {
 
   const now = new Date().toISOString()
 
-  // Create content_item
   const { data: contentItem, error: ciErr } = await admin
     .from('content_items')
     .insert({
@@ -757,7 +718,6 @@ export async function approveContent(payload: {
 
   if (ciErr || !contentItem) return { error: 'Ошибка создания контента: ' + ciErr?.message }
 
-  // Create image_asset if image was generated
   if (hints?.storagePath) {
     const { data: imageAsset } = await admin
       .from('image_assets')
@@ -819,23 +779,6 @@ export async function scheduleContent(payload: {
     platform: payload.platform as PlatformEnum,
     status: 'pending',
   })
-
-  revalidatePath(`/project/${payload.projectId}`)
-  redirect(`/project/${payload.projectId}`)
-}
-
-export async function publishNow(payload: {
-  contentItemId: string
-  projectId: string
-}): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Не авторизован' }
-
-  await createAdminClient()
-    .from('content_items')
-    .update({ workflow_status: 'published', published_at: new Date().toISOString() })
-    .eq('id', payload.contentItemId)
 
   revalidatePath(`/project/${payload.projectId}`)
   redirect(`/project/${payload.projectId}`)

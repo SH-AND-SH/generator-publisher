@@ -943,38 +943,53 @@ export type Database = {
       publish_jobs: {
         Row: {
           attempt_count: number
+          buffer_post_id: string | null
+          buffer_status: string | null
           content_item_id: string
           created_at: string
+          error_message: string | null
           external_post_id: string | null
           failure_reason: string | null
           id: string
           last_attempt_at: string | null
           platform: Database["public"]["Enums"]["platform"]
+          scheduled_at: string | null
           status: Database["public"]["Enums"]["publish_job_status"]
+          telegram_message_id: string | null
           updated_at: string
         }
         Insert: {
           attempt_count?: number
+          buffer_post_id?: string | null
+          buffer_status?: string | null
           content_item_id: string
           created_at?: string
+          error_message?: string | null
           external_post_id?: string | null
           failure_reason?: string | null
           id?: string
           last_attempt_at?: string | null
           platform: Database["public"]["Enums"]["platform"]
+          scheduled_at?: string | null
           status?: Database["public"]["Enums"]["publish_job_status"]
+          telegram_message_id?: string | null
           updated_at?: string
         }
         Update: {
           attempt_count?: number
+          buffer_post_id?: string | null
+          buffer_status?: string | null
           content_item_id?: string
           created_at?: string
+          error_message?: string | null
           external_post_id?: string | null
           failure_reason?: string | null
           id?: string
           last_attempt_at?: string | null
           platform?: Database["public"]["Enums"]["platform"]
+          scheduled_at?: string | null
           status?: Database["public"]["Enums"]["publish_job_status"]
+          telegram_message_id?: string | null
           updated_at?: string
         }
         Relationships: [

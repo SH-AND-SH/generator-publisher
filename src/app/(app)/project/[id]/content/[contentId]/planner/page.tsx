@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Loader2, ChevronLeft, Calendar, Zap, ImageIcon } from 'lucide-react'
 import { SOCIAL_PLATFORMS } from '@/lib/constants'
-import { scheduleContent, publishNow } from '@/lib/actions/content'
+import { scheduleContent } from '@/lib/actions/content'
+import { publishContent } from '@/lib/actions/publishing'
 import type { Database } from '@/types/database'
 
 type PlatformEnum = Database['public']['Enums']['platform']
@@ -23,6 +24,11 @@ interface ContentData {
   platform: PlatformEnum | null
 }
 
+interface PublishJob {
+  id: string
+  platform: PlatformEnum
+}
+
 export default function ContentPlannerPage() {
   const params = useParams<{ id: string; contentId: string }>()
   const projectId = params.id
@@ -31,6 +37,7 @@ export default function ContentPlannerPage() {
 
   const [loading, setLoading] = useState(true)
   const [content, setContent] = useState<ContentData | null>(null)
+  const [publishJob, setPublishJob] = useState<PublishJob | null>(null)
 
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('10:00')
@@ -49,7 +56,8 @@ export default function ContentPlannerPage() {
           id,
           final_text,
           workflow_status,
-          image_assets!cover_image_asset_id(storage_path)
+          image_assets!cover_image_asset_id(storage_path),
+          publish_jobs(id, platform)
         `)
         .eq('id', contentItemId)
         .single()
@@ -73,7 +81,13 @@ export default function ContentPlannerPage() {
         platform: null,
       })
 
-      // Default date to tomorrow
+      // Use existing publish job if present
+      const jobs = data.publish_jobs as PublishJob[] | null
+      if (jobs && jobs.length > 0) {
+        setPublishJob(jobs[0])
+        setSelectedPlatform(jobs[0].platform)
+      }
+
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
       setSelectedDate(tomorrow.toISOString().split('T')[0])
@@ -96,10 +110,41 @@ export default function ContentPlannerPage() {
   }
 
   async function handlePublishNow() {
-    if (!confirm('Опубликовать сейчас? (mock — реальная публикация в Sprint 3)')) return
+    if (!confirm('Опубликовать сейчас?')) return
     setPublishing(true)
-    const result = await publishNow({ contentItemId, projectId })
-    if (result?.error) { toast.error(result.error); setPublishing(false) }
+
+    // If no publish job yet, schedule first (creates job), then publish
+    if (!publishJob) {
+      const scheduledAt = new Date().toISOString()
+      const schedResult = await scheduleContent({
+        contentItemId,
+        projectId,
+        platform: selectedPlatform,
+        scheduledAt,
+      })
+      if (schedResult?.error) {
+        toast.error(schedResult.error)
+        setPublishing(false)
+        return
+      }
+      // scheduleContent redirects on success, so we won't reach here normally
+      return
+    }
+
+    const result = await publishContent({
+      publishJobId: publishJob.id,
+      contentItemId,
+      projectId,
+      platform: publishJob.platform,
+      publishNow: true,
+    })
+    if (result.error) {
+      toast.error(result.error)
+      setPublishing(false)
+    } else {
+      toast.success('Опубликовано!')
+      router.push(`/project/${projectId}`)
+    }
   }
 
   if (loading || !content) {

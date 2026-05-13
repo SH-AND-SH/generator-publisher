@@ -34,3 +34,5 @@ export function getProjectColor(id: string): string {
   const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
   return PROJECT_COLORS[hash % PROJECT_COLORS.length]
 }
+
+export const OPENAI_TEXT_MODEL = 'gpt-5.5'
