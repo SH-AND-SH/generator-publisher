@@ -1,14 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { signInWithEmail } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 
 export function SignInForm({ authError }: { authError: boolean }) {
-  const supabase = createClient()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -17,20 +16,10 @@ export function SignInForm({ authError }: { authError: boolean }) {
     e.preventDefault()
     setLoading(true)
 
-    const redirectTo =
-      typeof window === 'undefined'
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
-        : `${window.location.origin}/auth/callback`
+    const result = await signInWithEmail(email)
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTo,
-      },
-    })
-
-    if (error) {
-      toast.error(error.message)
+    if (result.error) {
+      toast.error(result.error)
       setLoading(false)
       return
     }
