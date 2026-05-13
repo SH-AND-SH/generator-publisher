@@ -6,13 +6,17 @@ import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Zap,
-  Clock,
   TrendingUp,
   BarChart2,
   ImageIcon,
   Plus,
   ArrowRight,
+  FileText,
+  CheckCircle,
+  Clock,
 } from 'lucide-react'
+import { getProjectColor, CONTENT_STATUS_LABELS } from '@/lib/constants'
+import { MiniKanban } from '@/components/project/mini-kanban'
 
 export default async function ProjectDashboardPage({
   params,
@@ -36,6 +40,8 @@ export default async function ProjectDashboardPage({
     { data: queueItems },
     { data: trendSignals },
     { data: recentContent },
+    { data: allStatusItems },
+    { data: scheduledItems },
   ] = await Promise.all([
     supabase
       .from('content_items')
@@ -57,115 +63,155 @@ export default async function ProjectDashboardPage({
       .eq('workflow_status', 'published')
       .order('published_at', { ascending: false })
       .limit(4),
+    supabase
+      .from('content_items')
+      .select('workflow_status')
+      .eq('project_id', id)
+      .in('workflow_status', ['draft', 'in_review', 'scheduled']),
+    supabase
+      .from('content_items')
+      .select('id, title_or_label, scheduled_at, workflow_status')
+      .eq('project_id', id)
+      .not('scheduled_at', 'is', null)
+      .gte('scheduled_at', new Date().toISOString())
+      .order('scheduled_at')
+      .limit(30),
   ])
+
+  const draftCount     = allStatusItems?.filter((i) => i.workflow_status === 'draft').length ?? 0
+  const approvedCount  = allStatusItems?.filter((i) => i.workflow_status === 'in_review').length ?? 0
+  const scheduledCount = allStatusItems?.filter((i) => i.workflow_status === 'scheduled').length ?? 0
+
+  const color = getProjectColor(project.id)
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">{project.name}</h1>
-          <p className="text-sm text-muted-foreground">{project.category}</p>
+        <div className="flex items-center gap-3">
+          <span
+            className="h-8 w-8 rounded-lg shrink-0"
+            style={{ backgroundColor: color }}
+          />
+          <div>
+            <h1 className="text-xl font-semibold">{project.name}</h1>
+            <p className="text-sm text-muted-foreground">{project.category}</p>
+          </div>
         </div>
-        <Link href={`/project/${id}/generate`} className={buttonVariants({ size: 'sm' })}>
+        <Link href={`/project/${id}/content/new`} className={buttonVariants({ size: 'sm' })}>
           <Zap className="mr-2 h-4 w-4" />
-          Generate content
+          Создать контент
         </Link>
       </div>
 
-      {/* 5-block grid */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      {/* Status counters */}
+      <div className="grid grid-cols-3 gap-3">
+        <Link href={`/project/${id}/drafts`} className="block">
+          <Card className="hover:shadow-sm transition-shadow cursor-pointer">
+            <CardContent className="flex items-center gap-2 py-3 px-4">
+              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xl font-bold">{draftCount}</p>
+                <p className="text-xs text-muted-foreground">Черновики</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href={`/project/${id}/approved`} className="block">
+          <Card className="hover:shadow-sm transition-shadow cursor-pointer">
+            <CardContent className="flex items-center gap-2 py-3 px-4">
+              <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
+              <div>
+                <p className="text-xl font-bold">{approvedCount}</p>
+                <p className="text-xs text-muted-foreground">Утверждено</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href={`/project/${id}/scheduled`} className="block">
+          <Card className="hover:shadow-sm transition-shadow cursor-pointer">
+            <CardContent className="flex items-center gap-2 py-3 px-4">
+              <Clock className="h-4 w-4 text-blue-500 shrink-0" />
+              <div>
+                <p className="text-xl font-bold">{scheduledCount}</p>
+                <p className="text-xs text-muted-foreground">Запланировано</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
 
-        {/* Block 1: Content Queue */}
-        <Card className="col-span-1 lg:col-span-2 xl:col-span-1">
+      {/* Mini Kanban */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Контент-план</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MiniKanban
+            projectId={id}
+            scheduledItems={(scheduledItems ?? []).filter((i) => i.scheduled_at !== null) as { id: string; title_or_label: string; scheduled_at: string; workflow_status: string }[]}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Queue + Trends */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+        {/* Content Queue */}
+        <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              Content Queue
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Очередь контента</CardTitle>
             <Link
-              href={`/project/${id}/queue`}
+              href={`/project/${id}/drafts`}
               className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 text-xs'}
             >
-              View all <ArrowRight className="ml-1 h-3 w-3" />
+              Все <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
           </CardHeader>
           <CardContent className="space-y-2">
             {queueItems && queueItems.length > 0 ? (
               queueItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+                <Link
+                  key={item.id}
+                  href={`/project/${id}/content/${item.id}`}
+                  className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 hover:bg-muted/40 transition-colors"
+                >
                   <span className="text-sm truncate">{item.title_or_label}</span>
-                  <Badge variant={item.workflow_status === 'in_review' ? 'default' : 'secondary'} className="text-xs shrink-0">
-                    {item.workflow_status === 'in_review' ? 'Review' : 'Draft'}
+                  <Badge
+                    variant={item.workflow_status === 'in_review' ? 'default' : 'secondary'}
+                    className="text-xs shrink-0"
+                  >
+                    {CONTENT_STATUS_LABELS[item.workflow_status] ?? item.workflow_status}
                   </Badge>
-                </div>
+                </Link>
               ))
             ) : (
               <div className="flex flex-col items-center py-6 gap-2 text-center">
-                <p className="text-xs text-muted-foreground">Queue is empty</p>
-                <Link href={`/project/${id}/generate`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                <p className="text-xs text-muted-foreground">Очередь пуста</p>
+                <Link
+                  href={`/project/${id}/content/new`}
+                  className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                >
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Generate first post
+                  Создать первый пост
                 </Link>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Block 2: Quick Generation */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Zap className="h-4 w-4 text-muted-foreground" />
-              Quick Generation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Start from resources or describe the idea directly.
-            </p>
-            <Link className={buttonVariants({ size: 'sm' }) + ' w-full justify-center'} href={`/project/${id}/generate`}>
-              Start generating
-            </Link>
-            <Link className={buttonVariants({ variant: 'outline', size: 'sm' }) + ' w-full justify-center'} href={`/project/${id}/ideas`}>
-              Browse ideas bank
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Block 3: Analytics snapshot */}
-        <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart2 className="h-4 w-4 text-muted-foreground" />
-              Analytics
-            </CardTitle>
-            <Link
-              href={`/project/${id}/analytics`}
-              className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 text-xs'}
-            >
-              Full report <ArrowRight className="ml-1 h-3 w-3" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground py-6 text-center">
-              Analytics will appear after publishing content.
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Block 4: Trends */}
+        {/* Trends */}
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              Trending Now
+              Тренды
             </CardTitle>
             <Link
               href={`/project/${id}/trends`}
               className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 text-xs'}
             >
-              All trends <ArrowRight className="ml-1 h-3 w-3" />
+              Все тренды <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -180,24 +226,59 @@ export default async function ProjectDashboardPage({
               ))
             ) : (
               <p className="text-xs text-muted-foreground text-center py-4">
-                No trend signals yet
+                Трендов пока нет
               </p>
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Block 5: Latest publications */}
-        <Card className="col-span-1 lg:col-span-2 xl:col-span-1">
-          <CardHeader className="pb-3">
+      {/* Analytics + Publications */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+        {/* Analytics */}
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BarChart2 className="h-4 w-4 text-muted-foreground" />
+              Аналитика
+            </CardTitle>
+            <Link
+              href={`/project/${id}/analytics`}
+              className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 text-xs'}
+            >
+              Подробнее <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground py-6 text-center">
+              Аналитика появится после публикаций
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Latest publications */}
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <ImageIcon className="h-4 w-4 text-muted-foreground" />
-              Latest Publications
+              Последние публикации
             </CardTitle>
+            <Link
+              href={`/project/${id}/publications`}
+              className={buttonVariants({ variant: 'ghost', size: 'sm' }) + ' h-7 text-xs'}
+            >
+              Все <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
           </CardHeader>
           <CardContent className="space-y-2">
             {recentContent && recentContent.length > 0 ? (
               recentContent.map((item) => (
-                <div key={item.id} className="flex items-center gap-2 rounded-md border px-3 py-2">
+                <Link
+                  key={item.id}
+                  href={`/project/${id}/content/${item.id}`}
+                  className="flex items-center gap-2 rounded-md border px-3 py-2 hover:bg-muted/40 transition-colors"
+                >
                   <div className="h-8 w-8 rounded bg-muted shrink-0 flex items-center justify-center">
                     <ImageIcon className="h-4 w-4 text-muted-foreground" />
                   </div>
@@ -205,15 +286,15 @@ export default async function ProjectDashboardPage({
                     <p className="text-xs font-medium truncate">{item.title_or_label}</p>
                     {item.published_at && (
                       <p className="text-xs text-muted-foreground">
-                        {new Date(item.published_at).toLocaleDateString()}
+                        {new Date(item.published_at).toLocaleDateString('ru-RU')}
                       </p>
                     )}
                   </div>
-                </div>
+                </Link>
               ))
             ) : (
               <p className="text-xs text-muted-foreground text-center py-4">
-                No published content yet
+                Публикаций пока нет
               </p>
             )}
           </CardContent>

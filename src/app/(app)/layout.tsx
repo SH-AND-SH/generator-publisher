@@ -13,9 +13,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select('id, name, logo_url')
     .order('created_at')
 
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('id, name')
+    .eq('workspace_id', workspaces?.[0]?.id ?? '')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+
   return (
     <div className="flex h-screen overflow-hidden">
-      <AppSidebar workspaces={workspaces ?? []} user={user} />
+      <AppSidebar
+        workspaces={workspaces ?? []}
+        user={user}
+        projects={projects ?? []}
+      />
       <main className="flex-1 overflow-y-auto bg-background">
         {children}
       </main>
