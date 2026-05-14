@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "settings": "Settings",
+    "newWorkspace": "New workspace",
+    "projects": "Projects",
+    "noProjects": "No projects",
+    "newProject": "New project",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "title": "Generator / Publisher",
+    "subtitle": "Sign in to your workspace",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@company.com",
+    "submitButton": "Continue with email",
+    "loading": "Sending link…",
+    "checkEmail": "Check your email",
+    "checkEmailDesc": "We sent a magic link to",
+    "error": "We could not complete sign-in. Please request a new magic link and try again."
+  },
+  "workspace": {
+    "createTitle": "Create workspace",
+    "createSubtitle": "A workspace contains all your projects and team members.",
+    "nameLabel": "Workspace name",
+    "namePlaceholder": "My Company",
+    "timezoneLabel": "Timezone",
+    "timezoneHint": "Used for scheduling and analytics",
+    "createButton": "Create workspace",
+    "creating": "Creating…",
+    "cancel": "Cancel"
+  },
+  "status": {
+    "draft": "Draft",
+    "in_review": "In Review",
+    "approved": "Approved",
+    "scheduled": "Scheduled",
+    "published": "Published",
+    "publish_failed": "Failed"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "noData": "No data"
+  }
+}

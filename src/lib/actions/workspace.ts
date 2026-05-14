@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function createWorkspace(payload: { name: string; timezone: string }) {
   const supabase = await createClient()
@@ -16,8 +16,8 @@ export async function createWorkspace(payload: { name: string; timezone: string 
     return { error: 'Workspace name is required' }
   }
 
-  const admin = createAdminClient()
-  const { error } = await admin
+  // Use user-context client so RLS policy (auth.uid() = owner_user_id) passes
+  const { error } = await supabase
     .from('workspaces')
     .insert({ name: name.trim(), owner_user_id: user.id, timezone: timezone || 'UTC' })
 

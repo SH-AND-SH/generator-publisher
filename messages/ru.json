@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "dashboard": "Обзор",
+    "calendar": "Календарь",
+    "settings": "Настройки",
+    "newWorkspace": "Новый workspace",
+    "projects": "Проекты",
+    "noProjects": "Нет проектов",
+    "newProject": "Новый проект",
+    "signOut": "Выйти"
+  },
+  "auth": {
+    "title": "Generator / Publisher",
+    "subtitle": "Войдите в рабочее пространство",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@company.com",
+    "submitButton": "Продолжить с email",
+    "loading": "Отправляем ссылку…",
+    "checkEmail": "Проверьте почту",
+    "checkEmailDesc": "Мы отправили magic link на",
+    "error": "Не удалось войти. Запросите новую magic link и попробуйте снова."
+  },
+  "workspace": {
+    "createTitle": "Создать рабочее пространство",
+    "createSubtitle": "Здесь хранятся все ваши проекты и участники команды.",
+    "nameLabel": "Название",
+    "namePlaceholder": "Моя компания",
+    "timezoneLabel": "Часовой пояс",
+    "timezoneHint": "Используется для планирования и аналитики",
+    "createButton": "Создать",
+    "creating": "Создаём…",
+    "cancel": "Отмена"
+  },
+  "status": {
+    "draft": "Черновик",
+    "in_review": "На проверке",
+    "approved": "Утверждено",
+    "scheduled": "Запланировано",
+    "published": "Опубликовано",
+    "publish_failed": "Ошибка"
+  },
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "back": "Назад",
+    "loading": "Загрузка…",
+    "error": "Что-то пошло не так",
+    "noData": "Нет данных"
+  }
+}

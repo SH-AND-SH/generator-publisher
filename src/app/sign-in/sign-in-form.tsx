@@ -1,13 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { signInWithEmail } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { LanguageSwitcher } from '@/components/language-switcher'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
+import type { Locale } from '@/i18n.config'
 
 export function SignInForm({ authError }: { authError: boolean }) {
+  const t = useTranslations('auth')
+  const locale = useLocale() as Locale
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -30,33 +36,37 @@ export function SignInForm({ authError }: { authError: boolean }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher currentLocale={locale} />
+      </div>
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Generator / Publisher</h1>
-          <p className="text-sm text-muted-foreground">Sign in to your workspace</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         {authError ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-            We could not complete sign-in. Please request a new magic link and try again.
+            {t('error')}
           </div>
         ) : null}
 
         {sent ? (
           <div className="rounded-lg border bg-muted/40 p-6 text-center space-y-2">
-            <p className="font-medium">Check your email</p>
+            <p className="font-medium">{t('checkEmail')}</p>
             <p className="text-sm text-muted-foreground">
-              We sent a magic link to <span className="font-medium text-foreground">{email}</span>
+              {t('checkEmailDesc')}{' '}
+              <span className="font-medium text-foreground">{email}</span>
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('emailLabel')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@company.com"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -64,7 +74,7 @@ export function SignInForm({ authError }: { authError: boolean }) {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Sending link…' : 'Continue with email'}
+              {loading ? t('loading') : t('submitButton')}
             </Button>
           </form>
         )}

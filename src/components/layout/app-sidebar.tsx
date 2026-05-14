@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import type { User } from '@supabase/supabase-js'
 import {
   LayoutDashboard,
@@ -26,6 +27,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { buttonVariants } from '@/components/ui/button'
+import { LanguageSwitcher } from '@/components/language-switcher'
+import type { Locale } from '@/i18n.config'
 
 interface Workspace {
   id: string
@@ -39,16 +42,18 @@ interface AppSidebarProps {
   projects: { id: string; name: string }[]
 }
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Рабочее пространство', icon: LayoutDashboard },
-  { href: '/calendar',  label: 'Календарь',             icon: Calendar },
-  { href: '/settings',  label: 'Настройки',             icon: Settings },
-]
-
 export function AppSidebar({ workspaces, user, projects }: AppSidebarProps) {
+  const t = useTranslations('nav')
+  const locale = useLocale() as Locale
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const currentWorkspace = workspaces[0]
+
+  const NAV_ITEMS = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/calendar',  label: t('calendar'),  icon: Calendar },
+    { href: '/settings',  label: t('settings'),  icon: Settings },
+  ]
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-collapsed')
@@ -117,7 +122,7 @@ export function AppSidebar({ workspaces, user, projects }: AppSidebarProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/workspace/create" />} className="cursor-pointer">
               <Plus className="mr-2 h-4 w-4" />
-              Новый workspace
+              {t('newWorkspace')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -148,7 +153,7 @@ export function AppSidebar({ workspaces, user, projects }: AppSidebarProps) {
       <div className="flex-1 overflow-y-auto p-2">
         {!collapsed && (
           <p className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Проекты
+            {t('projects')}
           </p>
         )}
         <div className="space-y-0.5">
@@ -180,7 +185,7 @@ export function AppSidebar({ workspaces, user, projects }: AppSidebarProps) {
           })}
 
           {projects.length === 0 && !collapsed && (
-            <p className="px-2.5 py-2 text-xs text-muted-foreground">Нет проектов</p>
+            <p className="px-2.5 py-2 text-xs text-muted-foreground">{t('noProjects')}</p>
           )}
 
           <Link
@@ -189,16 +194,21 @@ export function AppSidebar({ workspaces, user, projects }: AppSidebarProps) {
               'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:bg-background/60 hover:text-foreground transition-colors',
               collapsed && 'justify-center px-0'
             )}
-            title={collapsed ? 'Новый проект' : undefined}
+            title={collapsed ? t('newProject') : undefined}
           >
             <Plus className="h-4 w-4 shrink-0" />
-            {!collapsed && 'Новый проект'}
+            {!collapsed && t('newProject')}
           </Link>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="border-t p-2">
+      <div className="border-t p-2 space-y-1">
+        {!collapsed && (
+          <div className="flex items-center justify-between px-2.5 py-1">
+            <LanguageSwitcher currentLocale={locale} />
+          </div>
+        )}
         <div
           className={cn(
             'flex items-center rounded-md px-2.5 py-2',
@@ -215,7 +225,7 @@ export function AppSidebar({ workspaces, user, projects }: AppSidebarProps) {
             <button
               type="submit"
               className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-              title="Выйти"
+              title={t('signOut')}
             >
               <LogOut className="h-3.5 w-3.5" />
             </button>
