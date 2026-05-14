@@ -56,13 +56,13 @@ export function TimezoneCombobox({ value, onChange, placeholder = 'UTC' }: Props
                 <CommandItem
                   key={tz}
                   value={tz}
-                  onSelect={(val) => {
-                    onChange(val)
+                  onSelect={() => {
+                    onChange(tz)
                     setOpen(false)
                   }}
                 >
                   <Check
-                    className={cn('mr-2 h-4 w-4', value === tz ? 'opacity-100' : 'opacity-0')}
+                    className={cn('mr-2 h-4 w-4', value.toLowerCase() === tz.toLowerCase() ? 'opacity-100' : 'opacity-0')}
                   />
                   {tz}
                 </CommandItem>
