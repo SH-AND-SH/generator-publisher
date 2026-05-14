@@ -1,6 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 function getTimezones(): string[] {
   try {
@@ -19,14 +26,17 @@ export function TimezoneCombobox({ value, onChange }: Props) {
   const timezones = useMemo(() => getTimezones(), [])
 
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      {timezones.map((tz) => (
-        <option key={tz} value={tz}>{tz}</option>
-      ))}
-    </select>
+    <Select value={value} onValueChange={(v) => v && onChange(v)}>
+      <SelectTrigger className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {timezones.map((tz) => (
+          <SelectItem key={tz} value={tz}>
+            {tz}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
