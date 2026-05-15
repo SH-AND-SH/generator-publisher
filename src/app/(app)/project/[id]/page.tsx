@@ -106,7 +106,7 @@ export default async function ProjectDashboardPage({
 
       {/* Status counters */}
       <div className="grid grid-cols-3 gap-3">
-        <Link href={`/project/${id}/drafts`} className="block">
+        <Link href={`/project/${id}/kanban?status=draft`} className="block">
           <Card className="hover:shadow-sm transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-2 py-3 px-4">
               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -117,18 +117,18 @@ export default async function ProjectDashboardPage({
             </CardContent>
           </Card>
         </Link>
-        <Link href={`/project/${id}/approved`} className="block">
+        <Link href={`/project/${id}/kanban?status=in_review`} className="block">
           <Card className="hover:shadow-sm transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-2 py-3 px-4">
               <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
               <div>
                 <p className="text-xl font-bold">{approvedCount}</p>
-                <p className="text-xs text-muted-foreground">Утверждено</p>
+                <p className="text-xs text-muted-foreground">На проверке</p>
               </div>
             </CardContent>
           </Card>
         </Link>
-        <Link href={`/project/${id}/scheduled`} className="block">
+        <Link href={`/project/${id}/kanban?status=scheduled`} className="block">
           <Card className="hover:shadow-sm transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-2 py-3 px-4">
               <Clock className="h-4 w-4 text-blue-500 shrink-0" />

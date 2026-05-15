@@ -13,7 +13,6 @@ import {
   Loader2,
   ChevronLeft,
   RefreshCw,
-  Send,
   CheckCircle2,
   ImageIcon,
   Trash2,
@@ -43,6 +42,7 @@ export default function ContentDetailPage() {
   const [regenInstruction, setRegenInstruction] = useState('')
   const [regenerating, setRegenerating] = useState(false)
 
+  const [imageFailed, setImageFailed] = useState(false)
   const [approving, setApproving] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -65,8 +65,8 @@ export default function ContentDetailPage() {
       setLoading(false)
       setGeneratingImage(true)
       const result = await generateImage({ draftVariantId, projectId })
-      if (result.error) toast.error(result.error)
-      else setImageUrl(result.imageUrl ?? null)
+      if (result.error) { toast.error(result.error); setImageFailed(true) }
+      else { setImageUrl(result.imageUrl ?? null); setImageFailed(false) }
       setGeneratingImage(false)
     } else {
       setLoading(false)
@@ -174,7 +174,15 @@ export default function ContentDetailPage() {
                 ) : !generatingImage ? (
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <ImageIcon className="h-10 w-10" />
-                    <p className="text-xs">Изображение не сгенерировано</p>
+                    <p className="text-xs">{imageFailed ? 'Ошибка генерации' : 'Изображение не сгенерировано'}</p>
+                    {imageFailed && (
+                      <button
+                        onClick={() => { setImageFailed(false); loadAndGenerate() }}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        <RefreshCw className="h-3 w-3" /> Повторить генерацию
+                      </button>
+                    )}
                   </div>
                 ) : null}
               </div>
