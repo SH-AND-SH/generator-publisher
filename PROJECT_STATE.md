@@ -1,7 +1,7 @@
 # PROJECT STATE — Generator / Publisher
 > Файл для быстрого восстановления контекста после перезагрузки / смены кодера / потери чата.
 > Обновлять после каждой завершённой задачи или важного решения.
-> Последнее обновление: 2026-05-13
+> Последнее обновление: 2026-05-13 | Sprint 3 ✅
 
 ---
 
@@ -37,7 +37,8 @@
 | БД | Supabase Postgres | — |
 | Auth | Supabase Auth (magic link) | — |
 | Storage | Supabase Storage | — |
-| AI текст | Claude API (Anthropic) | Sonnet 4.6 |
+| AI текст | OpenAI API | GPT-5.5 |
+| AI зрение | OpenAI API (vision) | GPT-5.5 |
 | AI картинки | DALL-E 3 (OpenAI) | — |
 | Deploy | Vercel | — |
 
@@ -220,25 +221,25 @@ src/
 **Фаза 6 — ContentPlanner:**
 - ❌ calendar_entries + publish_jobs + scheduling
 
-### Sprint 3 — Publishing via Buffer + Basic Analytics ❌ НЕ НАЧАТ
+### Sprint 3 — Publishing via Buffer + Basic Analytics ✅ ЗАВЕРШЁН
 
-**Архитектура публикации:**
-- Buffer — основной механизм постинга (Instagram, Facebook, LinkedIn, Twitter/X, TikTok)
-- Telegram Bot API — отдельный флоу (Buffer не поддерживает Telegram)
-- Sprint 2 создаёт `publish_jobs` со статусом `pending`, Sprint 3 их обрабатывает
+- ✅ Pre-task: GPT-4o → GPT-5.5 во всех server actions, константа `OPENAI_TEXT_MODEL` в constants.ts
+- ✅ DB: TypeScript типы `publish_jobs` расширены (buffer_post_id, buffer_status, telegram_message_id, error_message, scheduled_at)
+- ✅ Settings: подключение Buffer (токен → список профилей) и Telegram (bot token + chat_id)
+- ✅ publishing.ts: publishViaBuffer, publishViaTelegram, publishContent router, retryPublishJob
+- ✅ ContentPlanner: вызывает реальный publishContent
+- ✅ Vercel Cron: каждые 10 мин → /api/cron/process-publish-jobs (защищён CRON_SECRET)
+- ✅ Publications: список + Buffer-аналитика по клику + retry для failed
+- ✅ Project Analytics: бары по платформам + недельный chart
+- ✅ Workspace Calendar: месяц / неделя
+- ✅ ProjectKanban: неделя + колонки по статусам
 
-**DB миграция (перед стартом Sprint 3):**
-- Добавить в `publish_jobs`: `buffer_post_id TEXT`, `buffer_status TEXT`
-- Добавить в `publish_jobs`: `telegram_message_id TEXT`
-
-**Задачи:**
-- ❌ US-301 — Settings: подключение Buffer (OAuth, сохранение credentials в `integrations`)
-- ❌ US-302 — Buffer Posting: обработка `publish_jobs` → отправка в Buffer API → сохранение `buffer_post_id`
-- ❌ US-303 — Telegram Posting: отдельный флоу через Telegram Bot API
-- ❌ US-304 — Published Content Page (`/project/[id]/publications`): список постов + Buffer-аналитика по каждому (охват, показы, лайки, комментарии, сохранения, репосты, клики)
-- ❌ US-305 — Project Analytics Summary: сводка на уровне проекта (какие платформы и типы постов дают лучший результат)
-- ❌ US-306 — Workspace Calendar (полноценный)
-- ❌ US-307 — ProjectKanban (канбан-доска: неделя / месяц)
+**✅ Инфраструктура настроена:**
+- SQL миграция выполнена через Management API
+- Bucket `image-assets` создан как публичный
+- `CRON_SECRET` добавлен в Vercel и `.env.local`
+- `BUFFER_ACCESS_TOKEN` добавлен в Vercel и `.env.local`
+- `TELEGRAM_BOT_TOKEN` — **отложено до после Sprint 6** (см. ниже)
 
 ### Sprint 4 — Learning Loop + Deep Analytics ❌ НЕ НАЧАТ
 
@@ -250,37 +251,33 @@ src/
 
 **Отложено:**
 - Twitter/X Analytics API — платный ($100/мес), откладывается до подтверждения спроса
+- Telegram Bot интеграция — откладывается до после Sprint 6. Сейчас тестируем только через Buffer.
 
 ### Sprint 5 — Trend Scout + Idea Bank (14–20 мая) ❌ НЕ НАЧАТ
 - ❌ US-501 — Trend Scout
 - ❌ US-502 — Trend → Content flow
 - ❌ US-503 — Idea Bank
 
-### Sprint 6 — Team + Settings + Polish (21–27 мая) ❌ НЕ НАЧАТ
+### Sprint 6 — Team + Settings + Polish ❌ НЕ НАЧАТ
 - ❌ US-601 — Invite flow
 - ❌ US-602 — Team Settings
 - ❌ US-603 — Integration Settings
 - ❌ US-604 — Notification Settings
 - ❌ US-605 — Workspace Settings
 - ❌ US-606 — Polish + Billing scaffold
+- ❌ US-607 — Telegram Bot интеграция (подключение + постинг + TELEGRAM_BOT_TOKEN в env)
 
 ---
 
 ## 8. Текущий активный таск
 
-**Sprint 2 — НАЧАТ (2026-05-13)**
+**Sprint 3 — ЗАВЕРШЁН (2026-05-13)**
 
-**Первый шаг (Фаза 0):**
-Создать `src/lib/constants.ts` с `SOCIAL_PLATFORMS` (6 платформ, `twitter_x`, без Buffer).
+Следующий: Sprint 4 — Learning Loop + Deep Analytics (Meta Graph API).
+ТЗ Sprint 4 ещё не написано.
 
-**Второй шаг (Фаза 1):**
-Обновить существующие страницы Sprint 1 (Sidebar, WorkspaceDashboard, ProjectDashboard) под дизайн.
-Создать 11 skeleton-страниц для новых маршрутов.
-
-**Затем (Фазы 2–6):**
-Новые страницы генерации контента в порядке пайплайна.
-
-**Полное ТЗ (v3.0):** `/прод докс, спецификации , план и прочее/спецификации/TZ-Sprint2.md`
+**Инфраструктура готова.** Тестируем публикацию через Buffer.
+Следующий шаг: Sprint 4 — Learning Loop + Deep Analytics.
 
 ---
 

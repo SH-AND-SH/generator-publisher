@@ -15,6 +15,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   FolderOpen,
+  Columns3,
+  BarChart3,
+  Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/lib/actions/auth'
@@ -161,26 +164,50 @@ export function AppSidebar({ workspaces, user, projects }: AppSidebarProps) {
             const color = getProjectColor(project.id)
             const active = isProjectActive(project.id)
             return (
-              <Link
-                key={project.id}
-                href={`/project/${project.id}`}
-                className={cn(
-                  'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
-                  collapsed && 'justify-center px-0',
-                  active
-                    ? 'bg-background text-foreground shadow-sm font-medium'
-                    : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+              <div key={project.id}>
+                <Link
+                  href={`/project/${project.id}`}
+                  className={cn(
+                    'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
+                    collapsed && 'justify-center px-0',
+                    active
+                      ? 'bg-background text-foreground shadow-sm font-medium'
+                      : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+                  )}
+                  title={collapsed ? project.name : undefined}
+                >
+                  <span
+                    className="h-2 w-2 rounded-sm shrink-0"
+                    style={{ backgroundColor: color }}
+                  />
+                  {!collapsed && (
+                    <span className="truncate">{project.name}</span>
+                  )}
+                </Link>
+                {active && !collapsed && (
+                  <div className="mt-0.5 space-y-0.5">
+                    {[
+                      { href: `/project/${project.id}/kanban`, label: 'Канбан', icon: Columns3 },
+                      { href: `/project/${project.id}/analytics`, label: 'Аналитика', icon: BarChart3 },
+                      { href: `/project/${project.id}/publications`, label: 'Публикации', icon: Send },
+                    ].map(({ href, label, icon: Icon }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={cn(
+                          'flex items-center gap-2 rounded-md pl-6 pr-2.5 py-1.5 text-xs transition-colors',
+                          pathname === href || pathname.startsWith(href + '/')
+                            ? 'bg-background text-foreground font-medium'
+                            : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                        {label}
+                      </Link>
+                    ))}
+                  </div>
                 )}
-                title={collapsed ? project.name : undefined}
-              >
-                <span
-                  className="h-2 w-2 rounded-sm shrink-0"
-                  style={{ backgroundColor: color }}
-                />
-                {!collapsed && (
-                  <span className="truncate">{project.name}</span>
-                )}
-              </Link>
+              </div>
             )
           })}
 

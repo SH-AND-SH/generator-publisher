@@ -1,13 +1,22 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 function getTimezones(): string[] {
   try {
@@ -23,20 +32,33 @@ interface Props {
 }
 
 export function TimezoneCombobox({ value, onChange }: Props) {
+  const [open, setOpen] = useState(false)
   const timezones = useMemo(() => getTimezones(), [])
 
   return (
-    <Select value={value} onValueChange={(v) => v && onChange(v)}>
-      <SelectTrigger className="w-full">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {timezones.map((tz) => (
-          <SelectItem key={tz} value={tz}>
-            {tz}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={cn(buttonVariants({ variant: 'outline' }), 'w-full justify-between font-normal')}
+      >
+        {value || 'Выберите таймзону'}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="w-full p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Поиск таймзоны..." />
+          <CommandList>
+            <CommandEmpty>Не найдено</CommandEmpty>
+            <CommandGroup>
+              {timezones.map((tz) => (
+                <CommandItem key={tz} value={tz} onSelect={() => { onChange(tz); setOpen(false) }}>
+                  <Check className={cn('mr-2 h-4 w-4', value === tz ? 'opacity-100' : 'opacity-0')} />
+                  {tz}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }

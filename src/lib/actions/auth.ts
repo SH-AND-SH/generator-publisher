@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient as createRawClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function signInWithEmail(email: string) {
   // Use raw client with implicit flow so the magic link works across any browser.
@@ -34,6 +34,24 @@ export async function signInWithEmail(email: string) {
   }
 
   return { success: true }
+}
+
+export async function devSignIn() {
+  const email = process.env.DEV_LOGIN_EMAIL
+  if (!email) return { error: 'DEV_LOGIN_EMAIL not set' }
+
+  const admin = createAdminClient()
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback` },
+  })
+
+  if (error || !data?.properties?.action_link) {
+    return { error: error?.message ?? 'Failed to generate link' }
+  }
+
+  redirect(data.properties.action_link)
 }
 
 export async function signOut() {
